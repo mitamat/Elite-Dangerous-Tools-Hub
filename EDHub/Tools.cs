@@ -97,7 +97,7 @@ public static class Tools
 
         ["omg"] = new("Odyssey Map Guide", "Odyssey Map Guide (OMG)", "🗺️", ToolType.Web,
             "Interactive maps and guides for Odyssey settlements, missions, and activities.",
-            Url: "https://elitedangereuse.fr/outils/quizengine/"),
+            Url: "https://elitedangereuse.fr/outils/quizengine/omg_1.1.html"),
 
         ["ravencolonial"] = new("Raven Colonial", "Raven Colonial", "🏗️", ToolType.Web,
             "Colonisation planning, system construction tracking, and commodity management.",
