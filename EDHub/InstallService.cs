@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Microsoft.Win32;
 
 namespace EDHub;
 
@@ -31,20 +33,92 @@ public class InstallService
         Http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("EDHub", "1.0"));
     }
 
-    public static string? GetInstalledVersion(string? exePath)
+    // ── Path resolution ──────────────────────────────────────────────────────
+
+    public static string? ResolveExePath(Tool tool)
     {
-        if (exePath == null || !File.Exists(exePath)) return null;
+        if (tool.ExePath != null)
+        {
+            var expanded = Environment.ExpandEnvironmentVariables(tool.ExePath);
+            if (File.Exists(expanded)) return expanded;
+        }
+
+        if (tool.RegistryHint != null && tool.ExePath != null)
+        {
+            var exeName = Path.GetFileName(Environment.ExpandEnvironmentVariables(tool.ExePath));
+            return FindInRegistry(tool.RegistryHint, exeName);
+        }
+
+        return null;
+    }
+
+    private static string? FindInRegistry(string hint, string exeName)
+    {
+        string[] keyPaths =
+        [
+            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+            @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
+        ];
+
+        foreach (var keyPath in keyPaths)
+        {
+            foreach (var hive in new[] { Registry.LocalMachine, Registry.CurrentUser })
+            {
+                using var root = hive.OpenSubKey(keyPath);
+                if (root == null) continue;
+
+                foreach (var subName in root.GetSubKeyNames())
+                {
+                    using var sub = root.OpenSubKey(subName);
+                    if (sub == null) continue;
+
+                    var displayName = sub.GetValue("DisplayName") as string ?? "";
+                    if (!displayName.Contains(hint, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    var installLoc = sub.GetValue("InstallLocation") as string;
+                    if (string.IsNullOrWhiteSpace(installLoc)) continue;
+
+                    // Try the expected exe name first
+                    var candidate = Path.Combine(installLoc, exeName);
+                    if (File.Exists(candidate)) return candidate;
+
+                    // Fall back to any single exe in the install dir (skip uninstallers)
+                    try
+                    {
+                        var exes = Directory.GetFiles(installLoc, "*.exe", SearchOption.TopDirectoryOnly)
+                            .Where(x => !Path.GetFileNameWithoutExtension(x)
+                                .Contains("uninstall", StringComparison.OrdinalIgnoreCase))
+                            .ToArray();
+                        if (exes.Length == 1) return exes[0];
+                    }
+                    catch { /* directory may have been moved */ }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    // ── Version detection ────────────────────────────────────────────────────
+
+    public static string? GetInstalledVersion(Tool tool)
+    {
+        var path = ResolveExePath(tool);
+        if (path == null) return null;
         try
         {
-            var info = FileVersionInfo.GetVersionInfo(exePath);
+            var info = FileVersionInfo.GetVersionInfo(path);
             return info.ProductVersion ?? info.FileVersion;
         }
         catch { return null; }
     }
 
+    // ── GitHub release check ─────────────────────────────────────────────────
+
     public static async Task<InstallStatus> CheckAsync(Tool tool)
     {
-        var installedVersion = GetInstalledVersion(tool.ExePath);
+        var installedVersion = GetInstalledVersion(tool);
         var isInstalled = installedVersion != null;
 
         if (tool.GitHubRepo == null)
@@ -71,8 +145,7 @@ public class InstallService
 
     private static async Task<JsonElement?> FetchLatestRelease(string repo)
     {
-        var url = $"https://api.github.com/repos/{repo}/releases/latest";
-        var response = await Http.GetAsync(url);
+        var response = await Http.GetAsync($"https://api.github.com/repos/{repo}/releases/latest");
         if (!response.IsSuccessStatusCode) return null;
         var json = await response.Content.ReadAsStringAsync();
         return JsonDocument.Parse(json).RootElement;
@@ -83,30 +156,39 @@ public class InstallService
         if (!release.TryGetProperty("assets", out var assets)) return null;
 
         var candidates = new List<(JsonElement asset, int score)>();
+
         foreach (var asset in assets.EnumerateArray())
         {
             var name = asset.GetProperty("name").GetString() ?? "";
             var lower = name.ToLowerInvariant();
 
-            // Skip debug, source, portable (where a proper installer exists)
-            if (lower.Contains("debug") || lower.Contains("pdb")) continue;
+            // Skip non-Windows, debug, and source archives
+            if (lower.Contains("linux") || lower.Contains("macos") || lower.Contains("darwin") ||
+                lower.Contains(".deb") || lower.Contains(".rpm") || lower.Contains(".dmg"))
+                continue;
+            if (lower.Contains("debug") || lower.Contains(".pdb")) continue;
+            if (lower.Contains("source") || lower.Contains(".tar.gz") || lower.Contains(".sum")) continue;
 
             var score = 0;
 
-            // Prefer installer formats
-            if (lower.EndsWith(".msi")) score += 30;
-            else if (lower.EndsWith(".exe") && (lower.Contains("setup") || lower.Contains("install"))) score += 25;
-            else if (lower.EndsWith(".exe")) score += 10;
+            // Format preference: MSI > setup/install exe > plain exe > zip
+            if (lower.EndsWith(".msi")) score += 40;
+            else if (lower.EndsWith(".exe") && (lower.Contains("setup") || lower.Contains("install") || lower.Contains("installer"))) score += 30;
+            else if (lower.EndsWith(".exe")) score += 15;
             else if (lower.EndsWith(".zip")) score += 5;
             else continue;
 
-            // Prefer x64 / win64 explicitly
-            if (lower.Contains("x64") || lower.Contains("win64") || lower.Contains("64bit")) score += 10;
-            if (lower.Contains("win") || lower.Contains("windows")) score += 5;
+            // Architecture: prefer x64
+            if (lower.Contains("x64") || lower.Contains("amd64") || lower.Contains("win64") || lower.Contains("64bit")) score += 15;
+            if (lower.Contains("x86") || lower.Contains("win32") || lower.Contains("32bit")) score -= 5;
 
-            // Penalise portable zips and source
-            if (lower.Contains("portable")) score -= 8;
-            if (lower.Contains("source") || lower.Contains("src")) score -= 20;
+            // Prefer Windows-specific assets
+            if (lower.Contains("windows") || lower.Contains("win")) score += 5;
+
+            // Penalise unsigned and portable builds
+            if (lower.Contains("unsigned")) score -= 20;
+            if (lower.Contains("portable")) score -= 10;
+            if (lower.Contains("auto-updater")) score += 5; // prefer managed installs
 
             candidates.Add((asset, score));
         }
@@ -116,28 +198,54 @@ public class InstallService
             : candidates.OrderByDescending(c => c.score).First().asset;
     }
 
+    // ── Download + install ───────────────────────────────────────────────────
+
     public static async Task DownloadAndInstallAsync(
+        Tool tool,
         string downloadUrl,
         IProgress<(long received, long total)> progress,
         CancellationToken ct = default)
     {
-        var ext = Path.GetExtension(new Uri(downloadUrl).LocalPath);
+        var ext = Path.GetExtension(new Uri(downloadUrl).LocalPath).ToLowerInvariant();
         var tmp = Path.Combine(Path.GetTempPath(), $"EDHub_install_{Guid.NewGuid()}{ext}");
 
         try
         {
             await DownloadFileAsync(downloadUrl, tmp, progress, ct);
-            RunInstaller(tmp, ext);
+
+            if (ext == ".zip")
+                ExtractZip(tmp, tool);
+            else
+                RunInstaller(tmp, ext);
         }
         finally
         {
-            // Delay deletion so the installer process can start
             _ = Task.Run(async () =>
             {
-                await Task.Delay(10_000, CancellationToken.None);
-                try { File.Delete(tmp); } catch { /* ignore */ }
+                await Task.Delay(15_000, CancellationToken.None);
+                try { File.Delete(tmp); } catch { }
             }, CancellationToken.None);
         }
+    }
+
+    private static void ExtractZip(string zipPath, Tool tool)
+    {
+        string extractDir;
+
+        if (tool.ExePath != null)
+        {
+            var expanded = Environment.ExpandEnvironmentVariables(tool.ExePath);
+            extractDir = Path.GetDirectoryName(expanded)!;
+        }
+        else
+        {
+            extractDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                tool.Name);
+        }
+
+        Directory.CreateDirectory(extractDir);
+        ZipFile.ExtractToDirectory(zipPath, extractDir, overwriteFiles: true);
     }
 
     private static async Task DownloadFileAsync(
@@ -165,13 +273,9 @@ public class InstallService
 
     private static void RunInstaller(string path, string ext)
     {
-        var info = new ProcessStartInfo
-        {
-            UseShellExecute = true,
-            Verb = "runas"
-        };
+        var info = new ProcessStartInfo { UseShellExecute = true, Verb = "runas" };
 
-        if (ext.Equals(".msi", StringComparison.OrdinalIgnoreCase))
+        if (ext == ".msi")
         {
             info.FileName = "msiexec.exe";
             info.Arguments = $"/i \"{path}\"";

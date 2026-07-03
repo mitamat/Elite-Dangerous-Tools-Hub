@@ -15,7 +15,8 @@ public record Tool(
     string? Github = null,
     string? InstallNote = null,
     string? ImageResource = null,
-    string? GitHubRepo = null
+    string? GitHubRepo = null,
+    string? RegistryHint = null
 );
 
 public static class Tools
@@ -27,7 +28,8 @@ public static class Tools
             ExePath: @"C:\Program Files (x86)\EDMarketConnector\EDMarketConnector.exe",
             Github: "https://github.com/EDCD/EDMarketConnector",
             InstallNote: "Required for market data tools.",
-            GitHubRepo: "EDCD/EDMarketConnector"),
+            GitHubRepo: "EDCD/EDMarketConnector",
+            RegistryHint: "Elite Dangerous Market Connector"),
 
         ["inara"] = new("Inara", "Inara", "🌐", ToolType.Web,
             "Commander profiles, squadron management, markets, and community features.",
@@ -54,13 +56,15 @@ public static class Tools
             ExePath: @"C:\Program Files\EDDiscovery\EDDiscovery.exe",
             Github: "https://github.com/EDDiscovery/EDDiscovery",
             InstallNote: "Installs to Program Files.",
-            GitHubRepo: "EDDiscovery/EDDiscovery"),
+            GitHubRepo: "EDDiscovery/EDDiscovery",
+            RegistryHint: "EDDiscovery"),
 
         ["edobservatory"] = new("ED Observatory", "ED Observatory", "🔬", ToolType.Desktop,
             "Monitors journal for exploration-worthy bodies and valuable planets.",
             ExePath: @"C:\Program Files\Observatory\Observatory.exe",
             Github: "https://observatory.xjph.net/",
-            InstallNote: "Download from the ED Observatory website."),
+            InstallNote: "Download from the ED Observatory website.",
+            RegistryHint: "Observatory"),
 
         ["coriolis"] = new("Coriolis", "Coriolis Ship Builder", "🛸", ToolType.Web,
             "Ship outfitting simulator. Compare builds, optimise, and share loadouts.",
@@ -70,21 +74,25 @@ public static class Tools
             "Voice-activated co-pilot assistant. Navigation, ship status, and EDDB integration.",
             ExePath: @"C:\Program Files\EDCoPilot\EDCoPilot.exe",
             Github: "https://www.razzafrag.com/",
-            InstallNote: "Download from the EDCoPilot website."),
+            InstallNote: "Installs via MSI. Requires a valid licence key.",
+            GitHubRepo: "Razzafrag/EDCoPilot-Installer",
+            RegistryHint: "EDCoPilot"),
 
+        // SrvSurvey ships as a zip — extract target is %LOCALAPPDATA%\SrvSurvey
         ["srvsurvey"] = new("SRV Survey", "SRV Survey", "🌍", ToolType.Desktop,
             "Surface mapping, Guardian site tools, biological survey tracker, and settlement maps.",
-            ExePath: @"C:\Program Files\SrvSurvey\SrvSurvey.exe",
+            ExePath: @"%LOCALAPPDATA%\SrvSurvey\SrvSurvey.exe",
             Github: "https://github.com/njthomson/SrvSurvey",
-            InstallNote: "Installs to Program Files.",
+            InstallNote: "Extracted to your AppData folder.",
             GitHubRepo: "njthomson/SrvSurvey"),
 
         ["edmaterialhelper"] = new("Material Helper", "EDOdyssey Material Helper", "⚗️", ToolType.Desktop,
             "Track Odyssey materials, plan engineer upgrades, and find optimal farming locations.",
-            ExePath: @"C:\Program Files\EDMaterialHelper\EDMaterialHelper.exe",
+            ExePath: @"C:\Program Files\EDOdysseyMaterialHelper\EDOdysseyMaterialHelper.exe",
             Github: "https://github.com/jixxed/ed-odyssey-materials-helper",
-            InstallNote: "Installs to Program Files.",
-            GitHubRepo: "jixxed/ed-odyssey-materials-helper"),
+            InstallNote: "Installs via MSI.",
+            GitHubRepo: "jixxed/ed-odyssey-materials-helper",
+            RegistryHint: "Odyssey Materials Helper"),
 
         ["omg"] = new("Odyssey Map Guide", "Odyssey Map Guide (OMG)", "🗺️", ToolType.Web,
             "Interactive maps and guides for Odyssey settlements, missions, and activities.",

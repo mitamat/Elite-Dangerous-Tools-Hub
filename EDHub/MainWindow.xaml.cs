@@ -285,12 +285,20 @@ public partial class MainWindow : Window
 
     private void LaunchApp_Click(object sender, RoutedEventArgs e)
     {
-        if (_currentTool?.ExePath == null) return;
-        try { Process.Start(_currentTool.ExePath); }
-        catch
+        if (_currentTool == null) return;
+        var path = InstallService.ResolveExePath(_currentTool);
+        if (path == null)
         {
             MessageBox.Show(
-                $"Could not launch {_currentTool.Name}.\n\nExpected path:\n{_currentTool.ExePath}\n\nMake sure the application is installed.",
+                $"Could not locate {_currentTool.Name}.\n\nMake sure the application is installed.",
+                "Launch Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Could not launch {_currentTool.Name}.\n\n{ex.Message}",
                 "Launch Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
@@ -334,7 +342,7 @@ public partial class MainWindow : Window
 
         try
         {
-            await InstallService.DownloadAndInstallAsync(url, progress, ct);
+            await InstallService.DownloadAndInstallAsync(tool!, url, progress, ct);
             DownloadStatusText.Text = "Installer launched — follow the prompts.";
             DownloadProgress.Visibility = Visibility.Collapsed;
             InstallStatusText.Text = "Installation in progress…";
