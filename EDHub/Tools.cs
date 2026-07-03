@@ -63,7 +63,8 @@ public static class Tools
             "Monitors journal for exploration-worthy bodies and valuable planets.",
             ExePath: @"C:\Program Files\Observatory\Observatory.exe",
             Github: "https://observatory.xjph.net/",
-            InstallNote: "Download from the ED Observatory website.",
+            InstallNote: "Installs via setup executable.",
+            GitHubRepo: "Xjph/ObservatoryCore",
             RegistryHint: "Observatory"),
 
         ["coriolis"] = new("Coriolis", "Coriolis Ship Builder", "🛸", ToolType.Web,
