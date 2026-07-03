@@ -83,14 +83,19 @@ public class InstallService
                     var candidate = Path.Combine(installLoc, exeName);
                     if (File.Exists(candidate)) return candidate;
 
-                    // Fall back to any single exe in the install dir (skip uninstallers)
+                    // Fall back to any exe in the install dir, excluding uninstallers
                     try
                     {
                         var exes = Directory.GetFiles(installLoc, "*.exe", SearchOption.TopDirectoryOnly)
                             .Where(x => !Path.GetFileNameWithoutExtension(x)
-                                .Contains("uninstall", StringComparison.OrdinalIgnoreCase))
+                                .Contains("unins", StringComparison.OrdinalIgnoreCase))
                             .ToArray();
                         if (exes.Length == 1) return exes[0];
+                        // If multiple, prefer one matching the hint
+                        var match = exes.FirstOrDefault(x =>
+                            Path.GetFileNameWithoutExtension(x)
+                                .Contains(hint.Replace(" ", ""), StringComparison.OrdinalIgnoreCase));
+                        if (match != null) return match;
                     }
                     catch { /* directory may have been moved */ }
                 }

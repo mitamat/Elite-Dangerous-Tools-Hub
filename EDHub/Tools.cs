@@ -61,11 +61,11 @@ public static class Tools
 
         ["edobservatory"] = new("ED Observatory", "ED Observatory", "🔬", ToolType.Desktop,
             "Monitors journal for exploration-worthy bodies and valuable planets.",
-            ExePath: @"C:\Program Files\Observatory\Observatory.exe",
+            ExePath: @"C:\Program Files\Elite Observatory\ObservatoryCore.exe",
             Github: "https://observatory.xjph.net/",
             InstallNote: "Installs via setup executable.",
             GitHubRepo: "Xjph/ObservatoryCore",
-            RegistryHint: "Observatory"),
+            RegistryHint: "Elite Observatory"),
 
         ["coriolis"] = new("Coriolis", "Coriolis Ship Builder", "🛸", ToolType.Web,
             "Ship outfitting simulator. Compare builds, optimise, and share loadouts.",
