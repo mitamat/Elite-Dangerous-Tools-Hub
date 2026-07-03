@@ -1,0 +1,13 @@
+# Build output
+bin/
+obj/
+publish/
+
+# User-specific
+*.user
+*.suo
+.vs/
+
+# OS
+Thumbs.db
+.DS_Store
