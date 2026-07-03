@@ -112,7 +112,7 @@
                      FontSize="26" FontWeight="Light"/>
           <TextBlock Text="Elite Dangerous Tools Hub — All tools in one place"
                      Foreground="{StaticResource TextMuted}" FontSize="13" Margin="0,6,0,24"/>
-          <WrapPanel x:Name="ToolCardPanel" ItemWidth="230" ItemHeight="130"/>
+          <WrapPanel x:Name="ToolCardPanel" ItemWidth="230" ItemHeight="156"/>
         </StackPanel>
       </ScrollViewer>
 

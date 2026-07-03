@@ -40,7 +40,7 @@ public partial class MainWindow : Window
         {
             var card = new Border
             {
-                Width = 218, Height = 128, Margin = new Thickness(0, 0, 12, 12),
+                Width = 218, Height = 144, Margin = new Thickness(0, 0, 12, 12),
                 Background = new SolidColorBrush(Color.FromRgb(0x1A, 0x23, 0x32)),
                 BorderBrush = new SolidColorBrush(Color.FromRgb(0x2A, 0x3F, 0x55)),
                 BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
@@ -56,8 +56,7 @@ public partial class MainWindow : Window
             stack.Children.Add(new TextBlock
             {
                 Text = tool.Desc, FontSize = 11, TextWrapping = TextWrapping.Wrap,
-                Foreground = new SolidColorBrush(Color.FromRgb(0x88, 0x99, 0xAA)),
-                MaxHeight = 36
+                Foreground = new SolidColorBrush(Color.FromRgb(0x88, 0x99, 0xAA))
             });
             card.Child = stack;
 
