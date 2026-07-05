@@ -50,11 +50,14 @@ A single Windows desktop app that brings together the best third-party tools for
 | [Élite Dangereuse](https://elitedangereuse.fr/) | Web | French Elite Dangerous community site with guides, tools, and resources. |
 | Spectral Analysis Diagram | Image | Qohen Leth's Filtered Spectral Analysis Diagram — reference chart for identifying planet types via spectral analysis, with pan/zoom viewer. |
 
+## Installation
+
+Download `EDHub-Setup.exe` from the [latest release](https://github.com/mitamat/Elite-Dangerous-Tools-Hub/releases/latest) and run it. It's a standard installer — Start Menu shortcut, optional Desktop icon, and a normal uninstall entry in Windows Settings. The .NET runtime is bundled in, so there's nothing else to install first.
+
 ## Requirements
 
-- Windows 10/11
-- [.NET 9.0 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/9.0)
-- [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (usually already present on Windows 10/11)
+- Windows 10/11 (64-bit)
+- [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (already present on virtually all Windows 10/11 installs)
 
 ## Building from Source
 
@@ -63,6 +66,14 @@ git clone https://github.com/mitamat/Elite-Dangerous-Tools-Hub.git
 cd Elite-Dangerous-Tools-Hub/EDHub
 dotnet build
 dotnet run
+```
+
+To build the installer yourself, you'll need [Inno Setup 6](https://jrsoftware.org/isinfo.php):
+
+```
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o ..\publish-sc
+cd ..\installer
+iscc EDHub.iss
 ```
 
 ## Disclaimer
