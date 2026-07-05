@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Threading;
+using Microsoft.Web.WebView2.Core;
 
 namespace EDHub;
 
@@ -28,7 +30,14 @@ public partial class MainWindow : Window
         InitializeComponent();
         Loaded += async (_, _) =>
         {
-            await MainWebView.EnsureCoreWebView2Async();
+            // WebView2's default user data folder lives next to the exe, which is
+            // read-only under Program Files for a non-elevated process. Force it
+            // into a location that's always writable regardless of install path.
+            var userDataFolder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "EDHub", "WebView2");
+            var environment = await CoreWebView2Environment.CreateAsync(userDataFolder: userDataFolder);
+            await MainWebView.EnsureCoreWebView2Async(environment);
             BuildDashboard();
         };
         ImageViewerBorder.SizeChanged += (_, _) => { if (_currentTool?.Type == ToolType.Image) FitImage(); };
